@@ -1,0 +1,1 @@
+require("taskwarrior_nvim")
