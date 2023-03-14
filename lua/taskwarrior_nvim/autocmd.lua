@@ -23,28 +23,30 @@ M.run_task_watcher = function()
 					state:refresh()
 				elseif cwd and state:cache_get(cwd) then
 					state:set_cwd(cwd)
-					state:set_task(state:cache_get(cwd))
-				else
-					taskwarrior.get_task_from_cwd(function(err, task)
-						if err then
-							vim.notify(err, vim.log.levels.ERROR)
-						elseif task then
-							if cwd then
-								state:set_cwd(cwd)
-								state:cache_set(cwd, task)
+					state:start_task(state:cache_get(cwd))
+				elseif cwd then
+					local task_config = taskwarrior.look_for_task_config()
+					if task_config then
+						local err, task = task_config:get_task()
+						if task then
+							state:set_cwd(cwd)
+							state:start_task(task)
+							state:cache_set(cwd, task)
+						else
+							if config.notify_error then
+								vim.notify(err, vim.log.levels.ERROR, {})
 							end
-							state:set_task(task)
-						elseif not task then
-							state:stop_task()
 						end
-					end)
+					end
 				end
 			end
 		end,
 	})
 	vim.api.nvim_create_autocmd({ "VimLeavePre" }, {
 		callback = function()
-			vim.notify("Stopping task...", vim.log.levels.INFO, {})
+			if config.notify_stop then
+				vim.notify("Stopping task...", vim.log.levels.INFO, {})
+			end
 			state:stop_task()
 		end,
 	})

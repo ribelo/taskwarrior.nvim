@@ -60,7 +60,7 @@ function State:cache_get(cwd)
 end
 
 ---@param task Task
-function State:set_task(task)
+function State:start_task(task)
 	-- If the current task already exists and the uuids match, refresh the state and return.
 	if self.current_task and self.current_task.uuid == task.uuid then
 		self:refresh()
@@ -68,11 +68,19 @@ function State:set_task(task)
 	end
 	-- If there is already an existing current task, stop it first before setting a new one.
 	if self.current_task then
-		self.current_task:stop()
+		self.current_task
+			:stop(function(_j, _code, _signal)
+				if config.notify_stop then
+					vim.notify("Task '" .. self.current_task.description .. "' has stopped.", vim.log.levels.INFO, {})
+				end
+			end)
+			:start()
 	end
 	-- Start the new task start it.
 	task:start(function(_j, _code, _signal)
-		vim.notify("Task '" .. task.description .. "' has started.")
+		if config.notify_start then
+			vim.notify("Task '" .. task.description .. "' has started.", vim.log.levels.INFO, {})
+		end
 	end):start()
 	-- Set the new task as the current task.
 	self.current_task = task
@@ -91,6 +99,14 @@ function State:refresh()
 			self:stop_task()
 		end, config.granulation)
 	end
+end
+
+function State:notify_start()
+	vim.notify("Starting task " .. self.current_task.description, vim.log.levels.INFO, {})
+end
+
+function State:notify_stop()
+	vim.notify("Stopping task " .. self.current_task.description, vim.log.levels.INFO, {})
 end
 
 return State

@@ -1,3 +1,4 @@
+local taskwarrior = require("taskwarrior_nvim.taskwarrior")
 local autocmd = require("taskwarrior_nvim.autocmd")
 
 local M = {}
@@ -6,6 +7,20 @@ local M = {}
 M.setup = function(opts)
 	autocmd.run_change_watcher()
 	autocmd.run_task_watcher()
+
+	---@param args {fargs: string[]}
+	vim.api.nvim_create_user_command("Task", function(args)
+		taskwarrior
+			.cmd(args.fargs, {
+				on_exit = function(j, _code, _signal)
+					vim.notify(table.concat(j:result()))
+				end,
+			})
+			:start()
+	end, {
+		range = true,
+		nargs = "*",
+	})
 end
 
 M.browser = require("taskwarrior_nvim.telescope").browser

@@ -1,6 +1,4 @@
-local a = require("plenary.async")
 local Job = require("plenary.job")
-local config = require("taskwarrior_nvim.config")
 
 local M = {}
 
@@ -151,77 +149,6 @@ M.notify = function(j, code, _)
 	end
 end
 
----@class TaskConfig
----@field uuid string
-
---[[
-This function is responsible for searching for a task file named `.task` in the current working directory and its parent directories. If found, the function reads the first line of the file, which is expected to be the task name, and returns it.
-
-### Args:
-
-None
-
-### Returns:
-
-`string`: Returns the task name found in the `.task` file.
-
-### Usage:
-
-```lua
--- Example usage of look_for_task_name()
-local found_task = look_for_task_name()
-if found_task ~= nil then
-  print("Found task:", found_task)
-else
-  print("Task not found.")
-end
-```
---]]
-M.look_for_task_in_cwd = function()
-	---@type string?
-	local taskname = nil
-
-	-- Uses the function `vim.loop.cwd()` to get the current working directory
-	-- path and assigns it to the variable `filepath`.
-	local filepath = vim.loop.cwd()
-
-	-- Use a `while` loop to check if `filepath` is not empty or `nil`. This loop
-	-- will run until a task file is found or you reach the root directory.
-	while filepath ~= "" and filepath ~= nil do
-		-- Creates a file path by appending `/.task.json` to the `filepath` variable and
-		-- assigns it to the variable `task_filepath`.
-		local task_filepath = filepath .. config.task_file_name
-
-		-- Uses the function `a.uv.fs_open` to open a file `task_filepath` in
-		-- read-only mode.
-		local err, fd = a.uv.fs_open(task_filepath, "r", 438)
-		if err then
-			return
-		end
-
-		-- Check if there is an error while opening the file.
-		if not err then
-			-- Uses the function `a.uv.fs_stat` to read the file's status.
-			---@type string?, any
-			local err, stat = a.uv.fs_stat(task_filepath)
-			if err then
-				return
-			end
-
-			-- Uses the function `a.uv.fs_read` to read the content of the file.
-			---@type string?, string
-			local err, data = a.uv.fs_read(fd, stat.size, 0)
-			if err then
-				return
-			end
-			taskname = vim.trim(data)
-		end
-		-- If a task name was found, return it and exit the loop.
-		-- Otherwise, the loop continues with the parent directory until it reaches the root directory.
-		return taskname
-	end
-end
-
 ---@alias on_exit fun(j: Job, code?: number, signal?: number)
 ---@alias on_stdout fun(err: string, data: string, j?: Job)
 ---@alias on_stderr fun(err: string, data: string, j?: Job)
@@ -312,6 +239,35 @@ M.cmd = function(args, opts)
 	return make_task_job({ "rc.confirmation=0", unpack(args) }, opts)
 end
 
+---@return number
+M.add_task = function(args)
+	---@type string
+	local id
+	M.cmd({ "add", unpack(args) }, {
+		on_exit = function(j, _code, _signal)
+			id = string.match(j:result()[1], "%d+")
+		end,
+	}):sync()
+	---@diagnostic disable-next-line: return-type-mismatch
+	return tonumber(id)
+end
+
+---@return string?, Task?
+M.get_task_by_key = function(k, v)
+	local err, tasks = M.get_tasks()
+	if err then
+		return err, nil
+	elseif tasks then
+		for _, task in ipairs(tasks) do
+			if task[k] == v then
+				return nil, task
+			end
+		end
+	else
+		return "No tasks found", nil
+	end
+end
+
 --[[ 
 The function `as_json()` creates and returns a new `Job` object that runs the
 `task export` command with the given arguments.
@@ -340,6 +296,7 @@ end
 
 ---@class Task
 ---@field id number
+---@field uuid string
 ---@field description string
 ---@field start_ string?
 ---@field end_ string
@@ -352,11 +309,22 @@ local Task = {}
 Task.__index = Task
 M.Task = Task
 
+---@param o table
+---@return Task
+function Task:new(o)
+	return setmetatable(o, self)
+end
+
+---@class TaskConfigCommand
+---@field text? string
+---@field command? string[]
+---@field regex? string
+
 ---@class TaskConfig
 ---@field id? string
----@field description? string|string?
----@field project? string
----@field tags? string[]
+---@field description? TaskConfigCommand[]
+---@field project? TaskConfigCommand[]
+---@field tags? TaskConfigCommand[]
 ---
 local TaskConfig = {}
 TaskConfig.__index = TaskConfig
@@ -372,73 +340,168 @@ function TaskConfig:validate()
 		return "Missing required field `id` or `description`"
 	end
 	if not self.id and type(self.description) == "table" then
-		return "If there is no field `id`, `description` must be an array acting as a command line command."
+		return "If there is no field `id`, `description` must be an array of commands."
 	end
 end
 
----@param on_exit fun(err?: string, task?: Task)
----@return Job
-function TaskConfig:get_task(on_exit)
-	if self.id then
-		return M.cmd({ self.id, "export", "rc.json.array=0" }, {
+--[[
+This function is responsible for searching for a task file named
+`.taskwarrior.json` in the current working directory and its parent
+directories. If found, the function reads the file and return TaskConfig
+
+### Args:
+
+None
+
+### Returns:
+
+
+### Usage:
+
+```lua
+-- Example usage of look_for_task()
+local found_task = look_for_task()
+if found_task ~= nil then
+	print("Found task:", found_task)
+else
+	print("Task not found.")
+end
+```
+--]]
+---@return TaskConfig?
+M.look_for_task_config = function()
+	local cwd = vim.loop.cwd()
+	local file = cwd .. "/.taskwarrior.json"
+	local fd = vim.loop.fs_open(file, "r", 438)
+	if fd then
+		local stat, _, _ = vim.loop.fs_fstat(fd)
+		if not stat then
+			return
+		end
+		local data, _, _ = vim.loop.fs_read(fd, stat.size, 0)
+		if not data then
+			return
+		end
+		vim.loop.fs_close(fd)
+		return TaskConfig:new(vim.fn.json_decode(data))
+	end
+end
+
+---@return string?, Task?
+function TaskConfig:get_task()
+	---@type {err?: string, task?: Task}
+	local r = {}
+	if self.id and type(self.id) == "string" then
+		M.cmd({ self.id, "export", "rc.json.array=0" }, {
 			on_exit = function(j, _code, _signal)
 				local data = j:result()
 				if data then
 					local err, task = M.task_from_json(data[1])
-					if not err then
-						on_exit(nil, task)
-					else
-						on_exit(err, nil)
-					end
+					r.err = err
+					r.task = task
 				else
-					on_exit("Can't find task: " .. self.id, nil)
+					r.err = "Can't find task: " .. self.id
 				end
 			end,
-		})
+		}):sync(100)
+		return r.err, r.task
+	elseif not self.id and self.description then
+		---@type table
+		local description = {}
+		local project = {}
+		local tags = {}
+		for i, v in ipairs(self.description) do
+			if v.text then
+				table.insert(description, v.text)
+			elseif v.command then
+				Job:new({
+					command = v.command[1],
+					args = vim.list_slice(v.command, 2),
+					on_exit = function(j, _code, _signal)
+						local data = table.concat(j:result())
+						if not data then
+							r.err = "The configuration command [" .. i .. "] for descroption returns an empty string."
+							return r.err, r.task
+						elseif data and v.regex then
+							table.insert(description, string.match(data, v.regex))
+						elseif data and not v.regex then
+							table.insert(description, data)
+						end
+					end,
+				}):sync(100)
+			end
+		end
+		for i, v in ipairs(self.project or {}) do
+			if v.text then
+				table.insert(project, v.text)
+			elseif v.command then
+				Job:new({
+					command = v.command[1],
+					args = vim.list_slice(v.command, 2),
+					on_exit = function(j, _code, _signal)
+						local data = table.concat(j:result())
+						if not data then
+							r.err = "The configuration command [" .. i .. "] for project returns an empty string."
+							return r.err, r.task
+						elseif data and v.regex then
+							table.insert(project, string.match(data, v.regex))
+						elseif data and not v.regex then
+							table.insert(project, data)
+						end
+					end,
+				}):sync(100)
+			end
+		end
+		for i, v in ipairs(self.tags or {}) do
+			if v.text then
+				table.insert(tags, v.text)
+			elseif v.command then
+				Job:new({
+					command = v.command[1],
+					args = vim.list_slice(v.command, 2),
+					on_exit = function(j, _code, _signal)
+						local data = table.concat(j:result())
+						if not data then
+							r.err = "The configuration command [" .. i .. "] for tags returns an empty string."
+							return r.err, r.task
+						elseif data and v.regex then
+							table.insert(tags, string.match(data, v.regex))
+						elseif data and not v.regex then
+							table.insert(tags, data)
+						end
+					end,
+				}):sync(100)
+			end
+		end
+		r.err, r.task = M.get_task_by_key("description", table.concat(description))
+		if r.task then
+			vim.pretty_print("działa")
+			return r.err, r.task
+		else
+			local args = {}
+			table.insert(args, table.concat(description))
+			if #project > 0 then
+				table.insert(args, "project:" .. table.concat(project))
+			end
+			if #tags > 0 then
+				table.insert(args, "tag:" .. table.concat(tags, ","))
+			end
+			local id = M.add_task(args)
+			if id then
+				r.err, r.task = M.get_task_by_key("id", tonumber(id))
+				return r.err, r.task
+			else
+				r.err = "Can't find task: " .. table.concat(description)
+				return r.err, r.task
+			end
+		end
 	else
-		a.void(function()
-			on_exit("Can't find task: " .. self.id, nil)
-		end)
+		r.err = "The field id or description is absent"
+		return r.err, r.task
 	end
 end
 
-TaskConfig:new({ id = "c39d19bf-d566-4a8d-a86e-4f45db2135b5" })
-	:get_task(function(err, task)
-		if err then
-			vim.notify(err)
-		else
-			vim.notify("task", task.description)
-		end
-	end)
-	:start()
-
----@param on_exit fun(err?: string, task?: Task)
-M.get_task_from_cwd = function(on_exit)
-	a.run(function()
-		local data = M.look_for_task_in_cwd()
-		if data and data ~= "" then
-			local json = vim.json.decode(data)
-			if json and json.error then
-				on_exit(json.error, nil)
-			elseif json then
-			end
-		end
-		if uuid and uuid ~= "" then
-			make_task_job({ uuid, "export", "rc.json.array=0" }, {
-				on_exit = function(j, _code, _signal)
-					local err, task = M.task_from_json(j:result()[1])
-					if err then
-						on_exit(err, nil)
-					else
-						on_exit(nil, task)
-					end
-				end,
-			}):start()
-		else
-			on_exit(nil, nil)
-		end
-	end, function() end)
-end
+-- vim.pretty_print(task)
 
 --[[ 
 The function `Task:new()` creates a new instance of a Task object.
@@ -465,11 +528,6 @@ local t = Task:new({
 })
 ```
 --]]
----@param o Task
----@return Task
-function Task:new(o)
-	return setmetatable(o, self)
-end
 
 --[[ 
 The function `Task:cmd()` creates and returns a new `Job` object that runs the
@@ -698,17 +756,6 @@ The function `Task:edit()` creates and returns a new `Job` object that runs the
 ### Returns:
 - `Job`: a new Job object with the options passed in.
 
-### Usage:
-```lua
-local on_exit = function(j, _, _) vim.notify(j:result(), ...) end
-task:edit(on_exit):start()
-```
---]]
----@return Job
-function Task:edit()
-	return edit({ tostring(self.id) })
-end
-
 --[[
 The function `Task:start()` creates and returns a new `Job` object that runs the
 `task start` command on the given `task` with the given arguments.
@@ -867,7 +914,6 @@ function Task:as_lines(on_result)
 		if not longest_value or #v > #longest_value then
 			longest_value = v
 		end
-		---$$$
 	end
 	longest_key = longest_key .. "   "
 	local bottom_line = "─"
@@ -956,71 +1002,6 @@ M.task_from_json = function(s)
 end
 
 --[[
-This function converts a list of JSON strings `xs` into a list of `Task`
-objects. Each JSON-encoded string in the list represents the properties of a
-task object.
-
-#### Parameters
-- `xs` (`string[]`): An array of JSON-encoded strings that represent `Task`
-  objects.
-
-#### Returns
-- `{err?: string, tasks?: Task[]}`: This function returns a Lua table with two fields:
-	- `err` (`string`, optional): The error message, if any. If parsing the JSON
-		string fails, the error message is returned to indicate the type of failure.
-		Otherwise, `nil` is returned.
-	- `tasks` (`Task[]`, optional): A list of `Task` objects. If parsing the JSON
-	  string fails, this field will be empty.
-
-#### Usage
-```
-local json_strings = {"{\"id\":1,\"description\":\"task1\",\"status\":\"In Progress\"}", "{\"id\":2,\"description\":\"task2\",\"status\":\"Done\"}"}
-local result = M.tasks_from_json(json_strings)
-if result.err then
-   print(result.err)
-else
-   for _, task in ipairs(result.tasks) do
-      -- Task object manipulation goes here
-   end
-end
-```
---]]
----@param xs string[]
----@return {err?: string, tasks?: Task[]}
-M.tasks_from_json = function(xs)
-	local tasks = {}
-	local json = vim.json.decode(table.concat(xs, ""))
-	if json and json.error then
-		return { json.error.message, nil }
-	elseif json and not json.error then
-		---@param task table
-		for _, task in ipairs(json) do
-			---@param k string
-			---@param v any
-			for k, v in pairs(task) do
-				if k == "end" then
-					---@diagnostic disable-next-line: no-unknown
-					json[k] = nil
-					json.end_ = parse_date(v)
-				elseif k == "start" then
-					---@diagnostic disable-next-line: no-unknown
-					json[k] = nil
-					json.start_ = parse_date(v)
-				elseif k == "entry" then
-					json.entry = parse_date(v)
-				elseif k == "modified" then
-					json.modified = parse_date(v)
-				end
-			end
-			table.insert(tasks, Task:new(task))
-		end
-		return { nil, tasks }
-	else
-		return {}
-	end
-end
-
---[[
 Generates a new Job that retrieves all tasks.
 
 - `on_exit` (`function`): Callback function that gets triggered when the Job
@@ -1046,21 +1027,37 @@ M.get_tasks(function(err, tasks)
 end)
 ``` 
 --]]
----@param on_exit fun(err: string?, tasks?: Task[]): any
----@return Job
-M.get_tasks = function(on_exit)
-	return Job:new({
+---@return string?, Task[]?
+M.get_tasks = function()
+	local r = { err = nil, result = nil }
+	Job:new({
 		command = "task",
-		args = { "export", "all", "rc.verbose=nothing", "rc.json.array=1" },
+		args = { "export", "ready", "rc.verbose=nothing", "rc.json.array=0" },
 		---@param j Job
-		on_exit = function(j, code)
+		on_exit = function(j, code, _signal)
 			if code == 0 then
-				on_exit(nil, M.tasks_from_json(j:result()))
+				---@type Task[]
+				local tasks = {}
+				---@type string[]
+				local lines = j:result()
+				for _, line in ipairs(lines) do
+					local err, task = M.task_from_json(line)
+					if err then
+						r.err = err
+						return
+					else
+						table.insert(tasks, task)
+					end
+				end
+				r.result = tasks
+				return
 			else
-				on_exit(table.concat(j:result()), nil)
+				r.err = "Unable to retrieve tasks."
+				return
 			end
 		end,
-	})
+	}):sync(100)
+	return r.err, r.result
 end
 
 return M
