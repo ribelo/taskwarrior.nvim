@@ -65,6 +65,9 @@ Arguments are directly passed to the `task`, and `stdout` is passed to the notif
 ```lua
 :Task add Find the adjustable wrench project:Home priority:H
 ```
+
+[2023-03-14-105538_wf.webm](https://user-images.githubusercontent.com/1815898/224965131-f4b59801-4486-4b6d-b987-b461901e1a71.webm)
+
 ### Telescope
 
 The function `browser` is exported, which takes an array of arguments that is
@@ -73,6 +76,8 @@ passed to the `task export` command, which is usually `ready` report.
 ```lua
 require("taskwarrior_nvim").browser({"ready"})
 ```
+
+
 
 ```lua
 mappings = {
@@ -95,6 +100,8 @@ configuration file is searched for in `cwd`, and tasks are automatically
 switched based on the `BufEnter` event. `cwd` is cached, so changing tasks
 after opening or changing a buffer within a visited project in one session is
 lightning-fast and does not consume resources.
+
+[2023-03-14-104514_wf.webm](https://user-images.githubusercontent.com/1815898/224965286-8f10dd07-b428-4048-8a0d-d1db0c0d7cb4.webm)
 
 #### .taskwarrior.json
 
