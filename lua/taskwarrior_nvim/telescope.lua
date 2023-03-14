@@ -62,7 +62,6 @@ M.browser = function(args)
 		local elapsed_str
 		if task.start_ then
 			local elapsed = taskwarrior.time_elapsed(task.start_)
-			vim.pretty_print(elapsed)
 			if elapsed.days > 0 then
 				elapsed_str = elapsed.days .. "d " .. elapsed.hours .. "h " .. elapsed.hours .. "m"
 			elseif elapsed.hours > 0 then

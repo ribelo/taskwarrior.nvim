@@ -379,7 +379,7 @@ M.look_for_task_config = function()
 			return
 		end
 		local data, _, _ = vim.loop.fs_read(fd, stat.size, 0)
-		if not data then
+		if not data or data == "" then
 			return
 		end
 		vim.loop.fs_close(fd)

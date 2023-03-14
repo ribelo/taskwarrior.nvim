@@ -74,14 +74,14 @@ function State:start_task(task)
 					vim.notify("Task '" .. self.current_task.description .. "' has stopped.", vim.log.levels.INFO, {})
 				end
 			end)
-			:start()
+			:sync()
 	end
 	-- Start the new task start it.
 	task:start(function(_j, _code, _signal)
 		if config.notify_start then
 			vim.notify("Task '" .. task.description .. "' has started.", vim.log.levels.INFO, {})
 		end
-	end):start()
+	end):sync()
 	-- Set the new task as the current task.
 	self.current_task = task
 	-- Create a timer that will call 'stop_timer' on this State object after 10 minutes.
