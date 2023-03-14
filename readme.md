@@ -27,7 +27,7 @@ require("taskwarrior.nvim").setup({
 })
 ```
 
-#### lazy.nvim
+#### [lazy.nvim](https://github.com/folke/lazy.nvim)
 
 ```lua
 {
@@ -36,7 +36,9 @@ require("taskwarrior.nvim").setup({
       -- your configuration comes here
       -- or leave it empty to use the default settings
       -- refer to the configuration section below
-    }
+    },
+    -- or 
+    config = true
 }
 ```
 
@@ -78,7 +80,7 @@ mappings = {
     ["<M-a>"] = taskwarrior.cmd({"add", unpack(vim.split(vim.fn.input("Custom command: "))))
     ["<M-S-d>"] = task:delete 
     ["<M-d>"] = task:done
-    ["<M-s>"] = task:toggle or task:stop -- toggle
+    ["<M-s>"] = task:start or task:stop -- toggle
     ["<M-y>"] = vim.fn.setreg("+", task.uuid) -- yank uid to default register
     -- run custom command on task
     ["<M-c>"] = task:cmd(vim.split(vim.fn.input("Custom command: "))) 
