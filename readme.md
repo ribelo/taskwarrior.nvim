@@ -144,3 +144,6 @@ lightning-fast and does not consume resources.
   ]
 }
 ````
+
+For this particular case and project, a command will be created.
+`task add ribelo/taskwarrior_nvim:master project:ribelo tags:nvim_plugins`
