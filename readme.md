@@ -40,7 +40,7 @@ require("taskwarrior.nvim").setup({
 }
 ```
 
-### ⚙️ Configuration
+###  Configuration
 
 `taskwarrior.nvim` comes with the following defaults:
 
