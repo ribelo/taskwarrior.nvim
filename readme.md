@@ -77,6 +77,7 @@ passed to the `task export` command, which is usually `ready` report.
 require("taskwarrior_nvim").browser({"ready"})
 ```
 
+[2023-03-14-105424_wf.webm](https://user-images.githubusercontent.com/1815898/224967444-b6d5a3e2-bdf6-490b-b899-570a782409e2.webm)
 
 
 ```lua
