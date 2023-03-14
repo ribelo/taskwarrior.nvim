@@ -344,6 +344,22 @@ function TaskConfig:validate()
 	end
 end
 
+local function find_task_config_recursive(path)
+	local file = path .. "/.taskwarrior.json"
+	local fd = vim.loop.fs_open(file, "r", 438)
+
+	if fd then
+		return file, fd
+	end
+
+	local parent_path = vim.fn.fnamemodify(path, ":h")
+	if parent_path == path then
+		return nil, nil
+	end
+
+	return find_task_config_recursive(parent_path)
+end
+
 --[[
 This function is responsible for searching for a task file named
 `.taskwarrior.json` in the current working directory and its parent
@@ -371,20 +387,24 @@ end
 ---@return TaskConfig?
 M.look_for_task_config = function()
 	local cwd = vim.loop.cwd()
-	local file = cwd .. "/.taskwarrior.json"
-	local fd = vim.loop.fs_open(file, "r", 438)
-	if fd then
-		local stat, _, _ = vim.loop.fs_fstat(fd)
-		if not stat then
-			return
-		end
-		local data, _, _ = vim.loop.fs_read(fd, stat.size, 0)
-		if not data or data == "" then
-			return
-		end
-		vim.loop.fs_close(fd)
-		return TaskConfig:new(vim.fn.json_decode(data))
+	local _, fd = find_task_config_recursive(cwd)
+
+	if not fd then
+		return
 	end
+
+	local stat, _, _ = vim.loop.fs_fstat(fd)
+	if not stat then
+		return
+	end
+
+	local data, _, _ = vim.loop.fs_read(fd, stat.size, 0)
+	if not data or data == "" then
+		return
+	end
+
+	vim.loop.fs_close(fd)
+	return TaskConfig:new(vim.fn.json_decode(data))
 end
 
 ---@return string?, Task?
