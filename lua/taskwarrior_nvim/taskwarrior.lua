@@ -475,7 +475,6 @@ function TaskConfig:get_task()
 		end
 		r.err, r.task = M.get_task_by_key("description", table.concat(description))
 		if r.task then
-			vim.pretty_print("działa")
 			return r.err, r.task
 		else
 			local args = {}
