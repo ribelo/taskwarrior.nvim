@@ -169,7 +169,7 @@ The function `make_takswarrior_job()` creates and returns a new `Job` object tha
 - `Job`: a new Job object with the options passed in.
 
 ### Usage:
-```lua
+e``lua
 -- Define a function to print output to the status line (requires a plugin like vim-airline)
 function print_status_line(err, data, j)
 	vim.api.nvim_command("let g:airline#parts#takswarrior = {}")
@@ -345,6 +345,49 @@ function TaskConfig:validate()
 	end
 end
 
+--[[
+### Description:
+This function recursively searches for a `.taskwarrior.json` configuration file
+starting from a given path and moving up the directory tree until found or the
+root directory is reached.
+
+### Parameters:
+- `path` (`string`): The directory path to start the search from.
+
+### Returns:
+- `string`: The full path to the found `.taskwarrior.json` configuration file if found.
+- `number`: The file descriptor of the found `.taskwarrior.json` configuration file if found.
+- `nil, nil`: If no configuration file is found after searching the entire directory tree up to the root.
+
+### Usage:
+Suppose we have a directory tree structure like:
+```
+├── project
+│   ├── .taskwarrior.json
+│   ├── subdir1
+│   ├── subdir2
+│   │   ├── userdata
+│   │   ├── logs
+```
+
+1. Start searching from 'subdir1'.
+```lua
+local config_path, file_descriptor = find_task_config_recursive("path/to/project/subdir1")
+print(config_path)  -- Output: path/to/project/.taskwarrior.json
+```
+2. Start searching from 'logs' directory.
+```lua
+local config_path, file_descriptor = find_task_config_recursive("path/to/project/subdir2/logs")
+print(config_path)  -- Output: path/to/project/.taskwarrior.json
+```
+3. If the configuration file does not exist in the directory tree, both returned values will be `nil`.
+```lua
+local config_path, file_descriptor = find_task_config_recursive("path/to/another_project")
+print(config_path)  -- Output: nil
+print(file_descriptor)  -- Output: nil
+```
+--]]
+---@return string?, integer?
 local function find_task_config_recursive(path)
 	local file = path .. "/.taskwarrior.json"
 	local fd = vim.loop.fs_open(file, "r", 438)
@@ -385,10 +428,12 @@ else
 end
 ```
 --]]
----@return TaskConfig?
-M.look_for_task_config = function()
-	local cwd = vim.loop.cwd()
-	local _, fd = find_task_config_recursive(cwd)
+---@return string?, TaskConfig?
+M.look_for_task_config = function(root)
+	if not root then
+		root = vim.loop.cwd()
+	end
+	local path, fd = find_task_config_recursive(root)
 
 	if not fd then
 		return
@@ -405,7 +450,7 @@ M.look_for_task_config = function()
 	end
 
 	vim.loop.fs_close(fd)
-	return TaskConfig:new(vim.fn.json_decode(data))
+	return path, TaskConfig:new(vim.fn.json_decode(data))
 end
 
 ---@return string?, Task?
@@ -424,7 +469,7 @@ function TaskConfig:get_task()
 					r.err = "Can't find task: " .. self.id
 				end
 			end,
-		}):sync(100)
+		}):sync()
 		return r.err, r.task
 	elseif not self.id and self.description then
 		---@type table
@@ -440,7 +485,7 @@ function TaskConfig:get_task()
 					args = vim.list_slice(v.command, 2),
 					on_exit = function(j, _code, _signal)
 						local data = table.concat(j:result())
-						if not data then
+						if not data or data == "" then
 							r.err = "The configuration command [" .. i .. "] for descroption returns an empty string."
 							return r.err, r.task
 						elseif data and v.regex then
@@ -449,7 +494,7 @@ function TaskConfig:get_task()
 							table.insert(description, data)
 						end
 					end,
-				}):sync(100)
+				}):sync()
 			end
 		end
 		for i, v in ipairs(self.project or {}) do
@@ -461,7 +506,7 @@ function TaskConfig:get_task()
 					args = vim.list_slice(v.command, 2),
 					on_exit = function(j, _code, _signal)
 						local data = table.concat(j:result())
-						if not data then
+						if not data or data == "" then
 							r.err = "The configuration command [" .. i .. "] for project returns an empty string."
 							return r.err, r.task
 						elseif data and v.regex then
@@ -470,7 +515,7 @@ function TaskConfig:get_task()
 							table.insert(project, data)
 						end
 					end,
-				}):sync(100)
+				}):sync()
 			end
 		end
 		for i, v in ipairs(self.tags or {}) do
@@ -491,7 +536,7 @@ function TaskConfig:get_task()
 							table.insert(tags, data)
 						end
 					end,
-				}):sync(100)
+				}):sync()
 			end
 		end
 		r.err, r.task = M.get_task_by_key("description", table.concat(description))
@@ -819,7 +864,9 @@ task:denotate("foo", on_exit):start()
 ---@param on_exit? on_exit
 ---@return Job
 function Task:stop(on_exit)
-	return M.cmd({ "stop", tostring(self.uuid) }, { on_exit = on_exit })
+	return M.cmd({ "stop", tostring(self.uuid) }, {
+		on_exit = on_exit,
+	})
 end
 
 --[[
@@ -1035,7 +1082,7 @@ Generates a new Job that retrieves all tasks.
   command to be executed.
 
 ### Usage:
-```
+```lua
 M.get_tasks(function(err, tasks)
   if err then
     print("Error: " .. err)
