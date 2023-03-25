@@ -5,7 +5,6 @@ local M = {}
 
 ---@param opts? table
 M.setup = function(opts)
-	autocmd.run_change_watcher()
 	autocmd.run_task_watcher()
 
 	---@param args {fargs: string[]}
@@ -24,5 +23,6 @@ M.setup = function(opts)
 end
 
 M.browser = require("taskwarrior_nvim.telescope").browser
+M.go_to_config_file = require("taskwarrior_nvim.taskwarrior").go_to_config_file
 
 return M

@@ -1,4 +1,5 @@
 local Job = require("plenary.job")
+local config = require("taskwarrior_nvim.config")
 
 local M = {}
 
@@ -1075,8 +1076,27 @@ M.get_tasks = function()
 				return
 			end
 		end,
-	}):sync(100)
+	}):sync()
 	return r.err, r.result
+end
+
+-- The `create_config_file` function creates a new file if it doesn't exist.
+---@param path string? -- File path, uses a default path if not provided.
+M.go_to_config_file = function(path, b)
+	local data = vim.json.encode(config.default_task_file)
+	if not data then
+		return
+	end
+	-- Use default file path if not provided.
+	if not path then
+		path = vim.loop.cwd() or "."
+	end
+	local file = path .. "/" .. config.task_file_name
+	local fd, _, _ = vim.loop.fs_open(file, "wx", 438)
+	if fd then
+		vim.loop.fs_write(fd, data, 0)
+	end
+	vim.cmd("e " .. file)
 end
 
 return M
