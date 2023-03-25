@@ -2,111 +2,195 @@ local Job = require("plenary.job")
 local config = require("taskwarrior_nvim.config")
 
 ---@class State
----@field current_task? Task
----@field timer? uv_timer_t
----@field cwd? string
----@field cache? {[string]: Task}
----@field private stop_timer fun(self)
+---@field private cache? {[string]: {task: Task, idle_timer: uv_timer_t, activity_watchers: table<integer, integer>, is_running: boolean}}
 local State = {
-	current_task = nil,
-	timer = nil,
-	cwd = nil,
 	cache = {},
 }
 
-function State:set_cwd(cwd)
-	self.cwd = cwd
-end
-
-function State:reset()
-	self.current_task = nil
-	self.timer = nil
-end
-
-function State:stop_timer()
-	if self.timer then
-		self.timer:stop()
-		self.timer = nil
-	end
-end
-
-function State:stop_task()
-	self:stop_timer()
-	if self.current_task then
-		local msg = "Task '" .. self.current_task.description .. "' has stopped."
-		self.current_task
-			:stop(function(_j, _code, _signal)
-				vim.notify(msg, vim.log.levels.INFO, {})
-				self.current_task = nil
+---@param path string
+---@return uv_timer_t?
+function State:start_idle_timer(path)
+	if not self.cache[path].idle_timer then
+		local timer = vim.loop.new_timer()
+		if timer then
+			timer:start(config.granulation, 0, function()
+				self:stop_task(path)
 			end)
-			:start()
-	end
-end
-
----@param cwd string
----@param task Task
-function State:cache_set(cwd, task)
-	if not self.cache[cwd] then
-		self.cache[cwd] = {}
-	end
-	self.cache[cwd] = task
-end
-
----@param cwd string
-function State:cache_get(cwd)
-	if self.cache[cwd] then
-		return self.cache[cwd]
-	end
-end
-
----@param task Task
-function State:start_task(task)
-	-- If the current task already exists and the uuids match, refresh the state and return.
-	if self.current_task and self.current_task.uuid == task.uuid then
-		self:refresh()
-		return
-	end
-	-- If there is already an existing current task, stop it first before setting a new one.
-	if self.current_task then
-		self.current_task
-			:stop(function(_j, _code, _signal)
-				if config.notify_stop then
-					vim.notify("Task '" .. self.current_task.description .. "' has stopped.", vim.log.levels.INFO, {})
-				end
-			end)
-			:sync()
-	end
-	-- Start the new task start it.
-	task:start(function(_j, _code, _signal)
-		if config.notify_start then
-			vim.notify("Task '" .. task.description .. "' has started.", vim.log.levels.INFO, {})
+			self.cache[path].idle_timer = timer
+			return timer
 		end
-	end):sync()
-	-- Set the new task as the current task.
-	self.current_task = task
-	-- Create a timer that will call 'stop_timer' on this State object after 10 minutes.
-	-- The 'vim.defer_fn' function returns a timer ID that can be used to stop the timer.
-	-- The time is in milliseconds hence the need to multiply minutes by 60 and 1000 to convert.
-	self.timer = vim.defer_fn(function()
-		self:stop_task()
-	end, config.granulation)
-end
-
-function State:refresh()
-	if self.current_task then
-		self:stop_timer()
-		self.timer = vim.defer_fn(function()
-			self:stop_task()
-		end, config.granulation)
 	end
 end
 
-function State:notify_start()
-	vim.notify("Starting task " .. self.current_task.description, vim.log.levels.INFO, {})
+--- Stops an idle timer associated with given cwd
+---@param path string - Current working directory
+---@return boolean
+function State:stop_idle_timer(path)
+	-- Verify if the provided cwd exists in the cache
+	if self.cache[path] then
+		-- Stop the timer if found
+		if self.cache[path].idle_timer then
+			self.cache[path].idle_timer:stop()
+		end
+		return true
+	end
 end
 
-function State:notify_stop()
-	vim.notify("Stopping task " .. self.current_task.description, vim.log.levels.INFO, {})
+--- Resets an idle timer associated with given cwd
+---@param path string - Current working directory
+---@return uv_timer_t?
+function State:reset_idle_timer(path)
+	local timer = self.cache[path].idle_timer
+	if timer then
+		timer:stop()
+		self.cache[path].idle_timer = nil
+	end
+	return timer
+end
+
+---@param path string
+---@return uv_timer_t?
+function State:refresh_idle_timer(path)
+	local timer = self.cache[path].idle_timer
+	if timer then
+		timer:stop()
+		timer:start(config.granulation, 0, function()
+			self:stop_task(path)
+		end)
+		return timer
+	end
+end
+
+---@param path string
+---@param bufnr integer
+---@return integer?
+function State:register_activity_watcher(path, bufnr)
+	if not self.cache[path].activity_watchers then
+		self.cache[path].activity_watchers = {}
+	end
+	if not self.cache[path].activity_watchers[bufnr] then
+		local id = vim.api.nvim_create_autocmd(config.activity_events, {
+			callback = function()
+				self:refresh_task(path)
+			end,
+		})
+		self.cache[path].activity_watchers[bufnr] = id
+		return id
+	end
+end
+
+---@param path string
+---@param bufnr integer
+---@return integer?
+function State:unregister_activity_watcher(path, bufnr)
+	local id = self.cache[path].activity_watchers[bufnr]
+	if id then
+		vim.api.nvim_del_autocmd(id)
+		return id
+	end
+end
+
+function State:stop_all()
+	-- Stop all timers and remove them from the cache
+	for path, data in pairs(self.cache) do
+		for bufnr, _ in pairs(data.activity_watchers) do
+			self:unregister_activity_watcher(path, bufnr)
+		end
+		self:stop_task(path)
+		self:stop_idle_timer(path)
+	end
+end
+
+function State:stop_task(path)
+	if self.cache[path] and self.cache[path].task then
+		vim.schedule(function()
+			self.cache[path].task
+				:stop(function(_j, _code, _signal)
+					if config.notify_stop then
+						vim.notify(
+							"Task '" .. self.cache[path].task.description .. "' has stopped.",
+							vim.log.levels.INFO,
+							{}
+						)
+					end
+					self.cache[path].is_running = false
+					self:stop_idle_timer(path)
+				end)
+				:sync()
+		end)
+	end
+end
+
+---@param path string
+---@param bufnr integer
+---@param task Task
+function State:start_task(path, bufnr, task)
+	if self.cache[path] then
+		if task.uuid == self.cache[path].task.uuid then
+			if not self.cache[path].is_running then
+				vim.schedule(function()
+					task:start(function(_j, _code, _signal)
+						if config.notify_start then
+							vim.notify(
+								"Task '" .. self.cache[path].task.description .. "' has started.",
+								vim.log.levels.INFO,
+								{}
+							)
+						end
+						self.cache[path].is_running = true
+					end):start()
+				end)
+				if not self:refresh_idle_timer(path) then
+					vim.schedule(function()
+						self:start_idle_timer(path)
+					end)
+				end
+			else
+				if not self:refresh_idle_timer(path) then
+					vim.schedule(function()
+						self:start_idle_timer(path)
+					end)
+				end
+				self.cache[path].is_running = true
+			end
+		else
+			self:stop_task(path)
+			task:start(function(_j, _code, _signal)
+				if config.notify_start then
+					vim.notify("Task '" .. task.description .. "' has started.", vim.log.levels.INFO, {})
+				end
+				self.cache[path] = {
+					task = task,
+					is_running = true,
+				}
+				vim.schedule(function()
+					self:start_idle_timer(path)
+					self:register_activity_watcher(path, bufnr)
+				end)
+			end):sync()
+		end
+	else
+		task:start(function(_j, _code, _signal)
+			if config.notify_start then
+				vim.notify("Task '" .. task.description .. "' has started.", vim.log.levels.INFO, {})
+			end
+			self.cache[path] = {
+				task = task,
+				is_running = true,
+			}
+			vim.schedule(function()
+				self:start_idle_timer(path)
+				self:register_activity_watcher(path, bufnr)
+			end)
+		end):sync()
+	end
+end
+
+function State:refresh_task(path, bufnr)
+	local task = self.cache[path].task
+	if task then
+		self:start_task(path, bufnr, task)
+	end
 end
 
 return State
