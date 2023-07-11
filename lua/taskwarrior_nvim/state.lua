@@ -170,7 +170,7 @@ function State:start_task(path, bufnr, task)
 			end):sync()
 		end
 	else
-		task:start(function(_j, _code, _signal)
+		task:start(vim.schedule_wrap(function(_j, _code, _signal)
 			if config.notify_start then
 				vim.notify("Task '" .. task.description .. "' has started.", vim.log.levels.INFO, {})
 			end
@@ -182,7 +182,7 @@ function State:start_task(path, bufnr, task)
 				self:start_idle_timer(path)
 				self:register_activity_watcher(path, bufnr)
 			end)
-		end):sync()
+		end)):sync()
 	end
 end
 
