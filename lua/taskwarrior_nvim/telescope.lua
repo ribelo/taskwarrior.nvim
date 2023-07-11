@@ -113,34 +113,34 @@ M.browser = function(args)
 
 		map({ "i", "n" }, "<M-S-d>", function()
 			make_action(function(task)
-				task:delete(function(j, _code, _signal)
+				task:delete(vim.schedule_wrap(function(j, _code, _signal)
 					vim.notify(table.concat(j:result()), vim.log.levels.INFO, {})
 					current_picker:refresh(create_finder(), {})
-				end):start()
+				end)):start()
 			end)
 		end)
 
 		map({ "i", "n" }, "<M-d>", function()
 			make_action(function(task)
-				task:done(function(j, _code, _signal)
+				task:done(vim.schedule_wrap(function(j, _code, _signal)
 					vim.notify(table.concat(j:result()), vim.log.levels.INFO, {})
 					current_picker:refresh(create_finder(), {})
-				end):start()
+				end)):start()
 			end)
 		end)
 
 		map({ "i", "n" }, "<M-s>", function()
 			make_action(function(task)
 				if task.start_ then
-					task:stop(function(j, _code, _signal)
+					task:stop(vim.schedule_wrap(function(j, _code, _signal)
 						vim.notify(table.concat(j:result()), vim.log.levels.INFO, {})
 						current_picker:refresh(create_finder(), {})
-					end):start()
+					end)):start()
 				else
-					task:start(function(j, _code, _signal)
+					task:start(vim.schedule_wrap(function(j, _code, _signal)
 						vim.notify(table.concat(j:result()), vim.log.levels.INFO, {})
 						current_picker:refresh(create_finder(), {})
-					end):start()
+					end)):start()
 				end
 			end)
 		end)
@@ -157,10 +157,10 @@ M.browser = function(args)
 				local cmd = vim.fn.input("Custom command: ")
 				taskwarrior
 					.cmd({ unpack(vim.split(cmd, " ")) }, {
-						on_exit = function(j, _code, _singal)
+						on_exit = vim.schedule_wrap(function(j, _code, _singal)
 							current_picker:refresh(create_finder(), {})
 							vim.notify(table.concat(j:result(), " "), vim.log.levels.INFO, {})
-						end,
+						end),
 					})
 					:start()
 			end)
@@ -171,10 +171,10 @@ M.browser = function(args)
 				local cmd = vim.fn.input("Add: ")
 				taskwarrior
 					.cmd({ "add", unpack(vim.split(cmd, " ")) }, {
-						on_exit = function(j, _code, _singal)
+						on_exit = vim.schedule_wrap(function(j, _code, _singal)
 							current_picker:refresh(create_finder(), {})
 							vim.notify(table.concat(j:result(), " "), vim.log.levels.INFO, {})
-						end,
+						end),
 					})
 					:start()
 			end)
