@@ -4,7 +4,7 @@ local taskwarrior = require("taskwarrior_nvim.taskwarrior")
 
 ---@type {[string]: string? }
 local cmd_cache = {}
-
+local M = {}
 M.run_task_watcher = function()
 	vim.api.nvim_create_autocmd({ "BufEnter" }, {
 		callback = function()
