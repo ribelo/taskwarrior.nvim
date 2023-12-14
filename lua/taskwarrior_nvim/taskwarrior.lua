@@ -389,7 +389,7 @@ print(file_descriptor)  -- Output: nil
 --]]
 ---@return string?, integer?
 local function find_task_config_recursive(path)
-	local file = path .. "/.taskwarrior.json"
+	local file = path or "" .. "/.taskwarrior.json"
 	local fd = vim.loop.fs_open(file, "r", 438)
 
 	if fd then
@@ -989,7 +989,7 @@ function Task:as_lines(on_result)
 	}
 	table.insert(arr, string.rep(bottom_line, #longest_key) .. string.rep(bottom_line, #longest_value))
 	for _, k in ipairs(M.keys_to_show) do
-		---@type any
+		---@type table
 		local v
 		if k == "end" then
 			v = self.end_
