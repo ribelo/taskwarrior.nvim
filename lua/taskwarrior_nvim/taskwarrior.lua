@@ -4,19 +4,19 @@ local config = require("taskwarrior_nvim.config")
 local M = {}
 
 M.keys_to_show = {
-	"id",
-	"description",
-	"annotations",
-	"status",
-	"project",
-	"start",
-	"entry",
-	"modified",
-	"end",
-	"tags",
-	"virtualtags",
-	"urgency",
-	"uuid",
+  "id",
+  "description",
+  "annotations",
+  "status",
+  "project",
+  "start",
+  "entry",
+  "modified",
+  "end",
+  "tags",
+  "virtualtags",
+  "urgency",
+  "uuid",
 }
 
 --[[
@@ -42,35 +42,37 @@ print("Seconds elapsed:", elapsed.seconds)
 ---@param date string
 ---@return {days: number, hours: number, minutes: number, seconds: number}
 M.time_elapsed = function(date)
-	-- Convert the date string to a table of year, month, day, hour, minute,
-	-- second and get the time in seconds since epoch
-	local time = os.time({
-		year = tonumber(date:sub(1, 4)) or 0, -- parse the year from the string
-		month = tonumber(date:sub(6, 7)) or 0, -- parse the month from the string
-		day = tonumber(date:sub(9, 10)) or 0, -- parse the day from the string
-		hour = tonumber(date:sub(12, 13)) or 0, -- parse the hour from the string
-		min = tonumber(date:sub(15, 16)) or 0, -- parse the minute from the string
-		sec = tonumber(date:sub(18, 19)) or 0, -- parse the second from the string
-	})
+  -- Convert the date string to a table of year, month, day, hour, minute,
+  -- second and get the time in seconds since epoch
+  local time = os.time({
+    year = tonumber(date:sub(1, 4)) or 0, -- parse the year from the string
+    month = tonumber(date:sub(6, 7)) or 0, -- parse the month from the string
+    day = tonumber(date:sub(9, 10)) or 0, -- parse the day from the string
+    hour = tonumber(date:sub(12, 13)) or 0, -- parse the hour from the string
+    min = tonumber(date:sub(15, 16)) or 0, -- parse the minute from the string
+    sec = tonumber(date:sub(18, 19)) or 0, -- parse the second from the string
+  })
 
-	-- Get the current time in seconds since epoch in UTC
-	---@diagnostic disable-next-line: param-type-mismatch
-	local now = os.time(os.date("!*t"))
+  -- Get the current time in seconds since epoch in UTC
+  ---@diagnostic disable-next-line: param-type-mismatch
+  local now = os.time(os.date("!*t"))
 
-	-- Calculate the difference between the given date and the current date and time
-	local diff = now - time
+  -- Calculate the difference between the given date and the current date and time
+  local diff = now - time
 
-	-- Calculate the number of elapsed days since given date
-	local days = math.floor(diff / (24 * 60 * 60))
-	-- Calculate the number of elapsed hours since given date
-	local hours = math.floor((diff - days * 24 * 60 * 60) / (60 * 60))
-	-- Calculate the number of elapsed minutes since given date
-	local minutes = math.floor((diff - days * 24 * 60 * 60 - hours * 60 * 60) / 60)
-	-- Calculate the number of elapsed seconds since given date
-	local seconds = math.floor(diff - days * 24 * 60 * 60 - hours * 60 * 60 - minutes * 60)
+  -- Calculate the number of elapsed days since given date
+  local days = math.floor(diff / (24 * 60 * 60))
+  -- Calculate the number of elapsed hours since given date
+  local hours = math.floor((diff - days * 24 * 60 * 60) / (60 * 60))
+  -- Calculate the number of elapsed minutes since given date
+  local minutes =
+    math.floor((diff - days * 24 * 60 * 60 - hours * 60 * 60) / 60)
+  -- Calculate the number of elapsed seconds since given date
+  local seconds =
+    math.floor(diff - days * 24 * 60 * 60 - hours * 60 * 60 - minutes * 60)
 
-	-- Return a table of elapsed time breakdown
-	return { days = days, hours = hours, minutes = minutes, seconds = seconds }
+  -- Return a table of elapsed time breakdown
+  return { days = days, hours = hours, minutes = minutes, seconds = seconds }
 end
 
 --[[
@@ -94,18 +96,26 @@ local formatted_date = parse_date(date_string)
 ---@param date_string string
 ---@return string
 local function parse_date(date_string)
-	-- Split the input date string into separate date and time parts
-	local date_part = string.sub(date_string, 1, 8)
-	local time_part = string.sub(date_string, 10, 15)
+  -- Split the input date string into separate date and time parts
+  local date_part = string.sub(date_string, 1, 8)
+  local time_part = string.sub(date_string, 10, 15)
 
-	-- Format the date and time parts to include dashes and colons respectively
-	local formatted_date =
-		string.format("%s-%s-%s", string.sub(date_part, 1, 4), string.sub(date_part, 5, 6), string.sub(date_part, 7, 8))
-	local formatted_time =
-		string.format("%s:%s:%s", string.sub(time_part, 1, 2), string.sub(time_part, 3, 4), string.sub(time_part, 5, 6))
+  -- Format the date and time parts to include dashes and colons respectively
+  local formatted_date = string.format(
+    "%s-%s-%s",
+    string.sub(date_part, 1, 4),
+    string.sub(date_part, 5, 6),
+    string.sub(date_part, 7, 8)
+  )
+  local formatted_time = string.format(
+    "%s:%s:%s",
+    string.sub(time_part, 1, 2),
+    string.sub(time_part, 3, 4),
+    string.sub(time_part, 5, 6)
+  )
 
-	-- Return the formatted date and time parts as a single string
-	return string.format("%s %s", formatted_date, formatted_time)
+  -- Return the formatted date and time parts as a single string
+  return string.format("%s %s", formatted_date, formatted_time)
 end
 
 --[[
@@ -142,12 +152,12 @@ j:start()
 ---@param j Job
 ---@param code number
 M.notify = function(j, code, _)
-	local msg = table.concat(j:result(), "")
-	if code == 1 then
-		vim.notify(msg, vim.log.levels.INFO, {})
-	else
-		vim.notify(msg, vim.log.levels.ERROR, {})
-	end
+  local msg = table.concat(j:result(), "")
+  if code == 1 then
+    vim.notify(msg, vim.log.levels.INFO, {})
+  else
+    vim.notify(msg, vim.log.levels.ERROR, {})
+  end
 end
 
 ---@alias on_exit fun(j: Job, code?: number, signal?: number)
@@ -190,23 +200,23 @@ job:start()
 ---@param opts? {on_exit?: on_exit, on_stdout?: on_stdout, on_stderr?: on_stderr}
 ---@return Job
 local function make_task_job(args, opts)
-	-- Define a default options table that specifies the command and args to be
-	-- passed to the job object
-	local default = {
-		command = "task",
-		args = args,
-	}
-	if opts then
-		-- If an options table was passed to this function, use vim.tbl_extend to
-		-- merge the passed options with the default options
-		opts = vim.tbl_extend("force", default, opts)
-	else
-		-- If no options table was passed, use the default options
-		opts = default
-	end
-	-- Create and return a new Job object with the options passed in
-	local j = Job:new(opts)
-	return j
+  -- Define a default options table that specifies the command and args to be
+  -- passed to the job object
+  local default = {
+    command = "task",
+    args = args,
+  }
+  if opts then
+    -- If an options table was passed to this function, use vim.tbl_extend to
+    -- merge the passed options with the default options
+    opts = vim.tbl_extend("force", default, opts)
+  else
+    -- If no options table was passed, use the default options
+    opts = default
+  end
+  -- Create and return a new Job object with the options passed in
+  local j = Job:new(opts)
+  return j
 end
 
 --[[
@@ -237,36 +247,36 @@ local job = M.cmd(args, opts):start()
 ---@param opts? {on_exit?: on_exit, on_stdout: on_stdout, on_stderr: on_stderr}
 ---@return Job
 M.cmd = function(args, opts)
-	return make_task_job({ "rc.confirmation=0", unpack(args) }, opts)
+  return make_task_job({ "rc.confirmation=0", unpack(args) }, opts)
 end
 
 ---@return number
 M.add_task = function(args)
-	---@type string
-	local id
-	M.cmd({ "add", unpack(args) }, {
-		on_exit = function(j, _code, _signal)
-			id = string.match(j:result()[1], "%d+")
-		end,
-	}):sync()
-	---@diagnostic disable-next-line: return-type-mismatch
-	return tonumber(id)
+  ---@type string
+  local id
+  M.cmd({ "add", unpack(args) }, {
+    on_exit = function(j, _code, _signal)
+      id = string.match(j:result()[1], "%d+")
+    end,
+  }):sync()
+  ---@diagnostic disable-next-line: return-type-mismatch
+  return tonumber(id)
 end
 
 ---@return string?, Task?
 M.get_task_by_key = function(k, v)
-	local err, tasks = M.get_tasks()
-	if err then
-		return err, nil
-	elseif tasks then
-		for _, task in ipairs(tasks) do
-			if task[k] == v then
-				return nil, task
-			end
-		end
-	else
-		return "No tasks found", nil
-	end
+  local err, tasks = M.get_tasks()
+  if err then
+    return err, nil
+  elseif tasks then
+    for _, task in ipairs(tasks) do
+      if task[k] == v then
+        return nil, task
+      end
+    end
+  else
+    return "No tasks found", nil
+  end
 end
 
 --[[ 
@@ -292,7 +302,7 @@ local job = M.as_json(args, opts):start()
 ---@param opts {on_exit: on_exit, on_stdout: on_stdout, on_stderr: on_stderr}
 ---@return Job
 local function as_json(args, opts)
-	return make_task_job({ "export", unpack(args) }, opts)
+  return make_task_job({ "export", unpack(args) }, opts)
 end
 
 ---@class Task
@@ -313,7 +323,7 @@ M.Task = Task
 ---@param o table
 ---@return Task
 function Task:new(o)
-	return setmetatable(o, self)
+  return setmetatable(o, self)
 end
 
 ---@class TaskConfigCommand
@@ -333,16 +343,16 @@ M.TaskConfig = TaskConfig
 
 ---@param o? table
 function TaskConfig:new(o)
-	return setmetatable(o or {}, TaskConfig)
+  return setmetatable(o or {}, TaskConfig)
 end
 
 function TaskConfig:validate()
-	if not self.id and not self.description then
-		return "Missing required field `id` or `description`"
-	end
-	if not self.id and type(self.description) == "table" then
-		return "If there is no field `id`, `description` must be an array of commands."
-	end
+  if not self.id and not self.description then
+    return "Missing required field `id` or `description`"
+  end
+  if not self.id and type(self.description) == "table" then
+    return "If there is no field `id`, `description` must be an array of commands."
+  end
 end
 
 --[[
@@ -389,25 +399,33 @@ print(file_descriptor)  -- Output: nil
 --]]
 ---@return string?, integer?
 local function find_task_config_recursive(path)
-	local file = path or "" .. "/.taskwarrior.json"
-	local fd = vim.loop.fs_open(file, "r", 438)
+  local file = (path or "") .. "/.taskwarrior.json"
+  local fd = vim.uv.fs_open(file, "r", 438)
 
-	if fd then
-		return file, fd
-	end
+  if fd then
+    return file, fd
+  end
 
-	local parent_path = vim.fn.fnamemodify(path, ":h")
-	if parent_path == path then
-		return nil, nil
-	end
+  local parent_path = vim.fn.fnamemodify(path, ":h")
+  if parent_path == path then
+    return nil, nil
+  end
 
-	return find_task_config_recursive(parent_path)
+  return find_task_config_recursive(parent_path)
+end
+
+local function readFileSync(fd)
+  local stat = assert(vim.uv.fs_fstat(fd))
+  local data = assert(vim.uv.fs_read(fd, stat.size, 0))
+  assert(vim.uv.fs_close(fd))
+  return data
 end
 
 --[[
 This function is responsible for searching for a task file named
 `.taskwarrior.json` in the current working directory and its parent
-directories. If found, the function reads the file and return TaskConfig
+directories. If found, the function reads the file and returns the path
+and the parsed TaskConfig.
 
 ### Args:
 
@@ -415,155 +433,182 @@ None
 
 ### Returns:
 
+- `path` (string|nil): The path to the found task file, or nil if not found.
+- `task_config` (TaskConfig|nil): The parsed TaskConfig object, or nil if not found or parsing failed.
 
 ### Usage:
 
 ```lua
--- Example usage of look_for_task()
-local found_task = look_for_task()
-if found_task ~= nil then
-	print("Found task:", found_task)
+-- Example usage of look_for_task_config()
+local path, task_config = M.look_for_task_config()
+if path ~= nil and task_config ~= nil then
+    print("Found task at path:", path)
+    print("Task config:", task_config)
 else
-	print("Task not found.")
+    print("Task not found or failed to parse.")
 end
-```
+
 --]]
 ---@return string?, TaskConfig?
 M.look_for_task_config = function(root)
-	if not root then
-		root = vim.loop.cwd()
-	end
-	local path, fd = find_task_config_recursive(root)
+  if not root then
+    root = vim.uv.cwd()
+  end
+  local path, fd = find_task_config_recursive(root)
 
-	if not fd then
-		return
-	end
+  if not fd then
+    return nil, nil
+  end
 
-	local stat, _, _ = vim.loop.fs_fstat(fd)
-	if not stat then
-		return
-	end
+  local stat = vim.uv.fs_fstat(fd)
+  if not stat then
+    vim.api.nvim_err_writeln("Can't read file stat.")
+    vim.uv.fs_close(fd)
+    return nil, nil
+  end
 
-	local data, _, _ = vim.loop.fs_read(fd, stat.size, 0)
-	if not data or data == "" then
-		return
-	end
+  local data = vim.uv.fs_read(fd, stat.size, 0)
+  vim.print(vim.inspect(data))
+  vim.print("4")
+  vim.loop.fs_close(fd)
 
-	vim.loop.fs_close(fd)
-	return path, TaskConfig:new(vim.fn.json_decode(data))
+  if not data or data == "" then
+    return nil, nil
+  end
+
+  local success, decoded_data = pcall(vim.json.decode, data)
+  if not success then
+    vim.api.nvim_err_writeln("Failed to parse JSON data.")
+    return nil, nil
+  end
+
+  vim.print("5")
+  return path, TaskConfig:new(decoded_data)
 end
 
 ---@return string?, Task?
 function TaskConfig:get_task()
-	---@type {err?: string, task?: Task}
-	local r = {}
-	if self.id and type(self.id) == "string" then
-		M.cmd({ self.id, "export", "rc.json.array=0" }, {
-			on_exit = function(j, _code, _signal)
-				local data = j:result()
-				if data then
-					local err, task = M.task_from_json(data[1])
-					r.err = err
-					r.task = task
-				else
-					r.err = "Can't find task: " .. self.id
-				end
-			end,
-		}):sync()
-		return r.err, r.task
-	elseif not self.id and self.description then
-		---@type table
-		local description = {}
-		local project = {}
-		local tags = {}
-		for i, v in ipairs(self.description) do
-			if v.text then
-				table.insert(description, v.text)
-			elseif v.command then
-				Job:new({
-					command = v.command[1],
-					args = vim.list_slice(v.command, 2),
-					on_exit = function(j, _code, _signal)
-						local data = table.concat(j:result())
-						if not data or data == "" then
-							r.err = "The configuration command [" .. i .. "] for descroption returns an empty string."
-							return r.err, r.task
-						elseif data and v.regex then
-							table.insert(description, string.match(data, v.regex))
-						elseif data and not v.regex then
-							table.insert(description, data)
-						end
-					end,
-				}):sync()
-			end
-		end
-		for i, v in ipairs(self.project or {}) do
-			if v.text then
-				table.insert(project, v.text)
-			elseif v.command then
-				Job:new({
-					command = v.command[1],
-					args = vim.list_slice(v.command, 2),
-					on_exit = function(j, _code, _signal)
-						local data = table.concat(j:result())
-						if not data or data == "" then
-							r.err = "The configuration command [" .. i .. "] for project returns an empty string."
-							return r.err, r.task
-						elseif data and v.regex then
-							table.insert(project, string.match(data, v.regex))
-						elseif data and not v.regex then
-							table.insert(project, data)
-						end
-					end,
-				}):sync()
-			end
-		end
-		for i, v in ipairs(self.tags or {}) do
-			if v.text then
-				table.insert(tags, v.text)
-			elseif v.command then
-				Job:new({
-					command = v.command[1],
-					args = vim.list_slice(v.command, 2),
-					on_exit = function(j, _code, _signal)
-						local data = table.concat(j:result())
-						if not data then
-							r.err = "The configuration command [" .. i .. "] for tags returns an empty string."
-							return r.err, r.task
-						elseif data and v.regex then
-							table.insert(tags, string.match(data, v.regex))
-						elseif data and not v.regex then
-							table.insert(tags, data)
-						end
-					end,
-				}):sync()
-			end
-		end
-		r.err, r.task = M.get_task_by_key("description", table.concat(description))
-		if r.task then
-			return r.err, r.task
-		else
-			local args = {}
-			table.insert(args, table.concat(description))
-			if #project > 0 then
-				table.insert(args, "project:" .. table.concat(project))
-			end
-			if #tags > 0 then
-				table.insert(args, "tag:" .. table.concat(tags, ","))
-			end
-			local id = M.add_task(args)
-			if id then
-				r.err, r.task = M.get_task_by_key("id", tonumber(id))
-				return r.err, r.task
-			else
-				r.err = "Can't find task: " .. table.concat(description)
-				return r.err, r.task
-			end
-		end
-	else
-		r.err = "The field id or description is absent"
-		return r.err, r.task
-	end
+  ---@type {err?: string, task?: Task}
+  local r = {}
+  if self.id and type(self.id) == "string" then
+    M.cmd({ self.id, "export", "rc.json.array=0" }, {
+      on_exit = function(j, _code, _signal)
+        local data = j:result()
+        if data then
+          local err, task = M.task_from_json(data[1])
+          r.err = err
+          r.task = task
+        else
+          r.err = "Can't find task: " .. self.id
+        end
+      end,
+    }):sync()
+    return r.err, r.task
+  elseif not self.id and self.description then
+    ---@type table
+    local description = {}
+    local project = {}
+    local tags = {}
+    for i, v in ipairs(self.description) do
+      if v.text then
+        table.insert(description, v.text)
+      elseif v.command then
+        Job
+          :new({
+            command = v.command[1],
+            args = vim.list_slice(v.command, 2),
+            on_exit = function(j, _code, _signal)
+              local data = table.concat(j:result())
+              if not data or data == "" then
+                r.err = "The configuration command ["
+                  .. i
+                  .. "] for descroption returns an empty string."
+                return r.err, r.task
+              elseif data and v.regex then
+                table.insert(description, string.match(data, v.regex))
+              elseif data and not v.regex then
+                table.insert(description, data)
+              end
+            end,
+          })
+          :sync()
+      end
+    end
+    for i, v in ipairs(self.project or {}) do
+      if v.text then
+        table.insert(project, v.text)
+      elseif v.command then
+        Job
+          :new({
+            command = v.command[1],
+            args = vim.list_slice(v.command, 2),
+            on_exit = function(j, _code, _signal)
+              local data = table.concat(j:result())
+              if not data or data == "" then
+                r.err = "The configuration command ["
+                  .. i
+                  .. "] for project returns an empty string."
+                return r.err, r.task
+              elseif data and v.regex then
+                table.insert(project, string.match(data, v.regex))
+              elseif data and not v.regex then
+                table.insert(project, data)
+              end
+            end,
+          })
+          :sync()
+      end
+    end
+    for i, v in ipairs(self.tags or {}) do
+      if v.text then
+        table.insert(tags, v.text)
+      elseif v.command then
+        Job
+          :new({
+            command = v.command[1],
+            args = vim.list_slice(v.command, 2),
+            on_exit = function(j, _code, _signal)
+              local data = table.concat(j:result())
+              if not data then
+                r.err = "The configuration command ["
+                  .. i
+                  .. "] for tags returns an empty string."
+                return r.err, r.task
+              elseif data and v.regex then
+                table.insert(tags, string.match(data, v.regex))
+              elseif data and not v.regex then
+                table.insert(tags, data)
+              end
+            end,
+          })
+          :sync()
+      end
+    end
+    r.err, r.task = M.get_task_by_key("description", table.concat(description))
+    if r.task then
+      return r.err, r.task
+    else
+      local args = {}
+      table.insert(args, table.concat(description))
+      if #project > 0 then
+        table.insert(args, "project:" .. table.concat(project))
+      end
+      if #tags > 0 then
+        table.insert(args, "tag:" .. table.concat(tags, ","))
+      end
+      local id = M.add_task(args)
+      if id then
+        r.err, r.task = M.get_task_by_key("id", tonumber(id))
+        return r.err, r.task
+      else
+        r.err = "Can't find task: " .. table.concat(description)
+        return r.err, r.task
+      end
+    end
+  else
+    r.err = "The field id or description is absent"
+    return r.err, r.task
+  end
 end
 
 -- vim.pretty_print(task)
@@ -618,7 +663,7 @@ taks:cmd(args, on_exit):start()
 ---@param on_exit on_exit
 ---@return Job
 function Task:cmd(args, on_exit)
-	return M.cmd({ self.uuid, unpack(args) }, { on_exit = on_exit })
+  return M.cmd({ self.uuid, unpack(args) }, { on_exit = on_exit })
 end
 
 --[[
@@ -643,7 +688,10 @@ task:annotate("foo", on_exit):start()
 ---@param on_exit? on_exit
 ---@return Job
 function Task:annotate(annotation, on_exit)
-	return M.cmd({ "annotate", tostring(self.uuid), annotation }, { on_exit = on_exit })
+  return M.cmd(
+    { "annotate", tostring(self.uuid), annotation },
+    { on_exit = on_exit }
+  )
 end
 
 --[[
@@ -668,7 +716,7 @@ task:append("foo", on_exit):start()
 ---@param on_exit? on_exit
 ---@return Job
 function Task:append(text, on_exit)
-	return M.cmd({ "append", tostring(self.uuid), text }, { on_exit = on_exit })
+  return M.cmd({ "append", tostring(self.uuid), text }, { on_exit = on_exit })
 end
 
 --[[
@@ -693,7 +741,7 @@ task:prepend("foo", on_exit):start()
 ---@param on_exit? on_exit
 ---@return Job
 function Task:prepend(text, on_exit)
-	return M.cmd({ "prepend", tostring(self.uuid), text }, { on_exit = on_exit })
+  return M.cmd({ "prepend", tostring(self.uuid), text }, { on_exit = on_exit })
 end
 
 --[[
@@ -716,7 +764,7 @@ task:delete(on_exit):start()
 ---@param on_exit? on_exit
 ---@return Job
 function Task:delete(on_exit)
-	return M.cmd({ "delete", tostring(self.uuid) }, { on_exit = on_exit })
+  return M.cmd({ "delete", tostring(self.uuid) }, { on_exit = on_exit })
 end
 
 --[[
@@ -739,7 +787,7 @@ task:purge(on_exit):start()
 ---@param on_exit? on_exit
 ---@return Job
 function Task:purge(on_exit)
-	return M.cmd({ "purge", tostring(self.uuid) }, { on_exit = on_exit })
+  return M.cmd({ "purge", tostring(self.uuid) }, { on_exit = on_exit })
 end
 
 --[[
@@ -762,7 +810,7 @@ task:denotate("foo", on_exit):start()
 ---@param on_exit? on_exit
 ---@return Job
 function Task:denotate(on_exit)
-	return M.cmd({ "denotate", tostring(self.uuid) }, { on_exit = on_exit })
+  return M.cmd({ "denotate", tostring(self.uuid) }, { on_exit = on_exit })
 end
 
 --[[
@@ -785,7 +833,7 @@ task:done(on_exit):start()
 ---@param on_exit? on_exit
 ---@return Job
 function Task:done(on_exit)
-	return M.cmd({ "done", tostring(self.uuid) }, { on_exit = on_exit })
+  return M.cmd({ "done", tostring(self.uuid) }, { on_exit = on_exit })
 end
 
 --[[
@@ -808,7 +856,7 @@ task:duplicate(on_exit):start()
 ---@param on_exit? on_exit
 ---@return Job
 function Task:duplicate(on_exit)
-	return M.cmd({ "duplicate", tostring(self.uuid) }, { on_exit = on_exit })
+  return M.cmd({ "duplicate", tostring(self.uuid) }, { on_exit = on_exit })
 end
 
 --[[
@@ -841,7 +889,7 @@ task:start(on_exit):start()
 ---@param on_exit? on_exit
 ---@return Job
 function Task:start(on_exit)
-	return M.cmd({ "start", tostring(self.uuid) }, { on_exit = on_exit })
+  return M.cmd({ "start", tostring(self.uuid) }, { on_exit = on_exit })
 end
 
 --[[
@@ -864,9 +912,9 @@ task:denotate("foo", on_exit):start()
 ---@param on_exit? on_exit
 ---@return Job
 function Task:stop(on_exit)
-	return M.cmd({ "stop", tostring(self.uuid) }, {
-		on_exit = on_exit,
-	})
+  return M.cmd({ "stop", tostring(self.uuid) }, {
+    on_exit = on_exit,
+  })
 end
 
 --[[
@@ -906,34 +954,34 @@ job:start()
 ---@param on_result fun(err?: string, o?: table)
 ---@return Job
 function Task:as_json(on_result)
-	---@type on_exit
-	local on_exit = function(j, code, _)
-		local text = table.concat(j:result())
-		if code == 0 then
-			local json = vim.json.decode(text)
-			if json and json.error then
-				on_result(json.error.message, nil)
-			elseif json and not json.error then
-				on_result(nil, json[1])
-			end
-		else
-			on_result(text, nil)
-		end
-	end
-	return as_json({ tostring(self.uuid) }, { on_exit = on_exit })
+  ---@type on_exit
+  local on_exit = function(j, code, _)
+    local text = table.concat(j:result())
+    if code == 0 then
+      local json = vim.json.decode(text)
+      if json and json.error then
+        on_result(json.error.message, nil)
+      elseif json and not json.error then
+        on_result(nil, json[1])
+      end
+    else
+      on_result(text, nil)
+    end
+  end
+  return as_json({ tostring(self.uuid) }, { on_exit = on_exit })
 end
 
 ---@param on_result fun(err?: string, lines?: string[])
 function Task:details(on_result)
-	---@type on_exit
-	local on_exit = function(j, code, _signal)
-		if code == 0 then
-			on_result(nil, j:result())
-		else
-			on_result(table.concat(j:result()), nil)
-		end
-	end
-	return make_task_job({ self.uuid }, { on_exit = on_exit })
+  ---@type on_exit
+  local on_exit = function(j, code, _signal)
+    if code == 0 then
+      on_result(nil, j:result())
+    else
+      on_result(table.concat(j:result()), nil)
+    end
+  end
+  return make_task_job({ self.uuid }, { on_exit = on_exit })
 end
 
 --[[
@@ -968,51 +1016,57 @@ end)
 --]]
 ---@param on_result fun(err?: string, lines?: string[])
 function Task:as_lines(on_result)
-	---@type string?
-	local longest_key = nil
-	---@type string?
-	local longest_value = nil
-	for _, k in ipairs(M.keys_to_show) do
-		local v = tostring(self[k]) or ""
-		v = tostring(v)
-		if not longest_key or #k > #longest_key then
-			longest_key = k
-		end
-		if not longest_value or #v > #longest_value then
-			longest_value = v
-		end
-	end
-	longest_key = longest_key .. "   "
-	local bottom_line = "─"
-	local arr = {
-		string.format("%-" .. #longest_key .. "s", "Name") .. string.format("%-" .. #longest_value .. "s", "Value"),
-	}
-	table.insert(arr, string.rep(bottom_line, #longest_key) .. string.rep(bottom_line, #longest_value))
-	for _, k in ipairs(M.keys_to_show) do
-		---@type table
-		local v
-		if k == "end" then
-			v = self.end_
-		else
-			v = self[k]
-		end
-		if not v then
-			v = ""
-		elseif k == "tags" then
-			v = table.concat(v, " ")
-		elseif k == "annotations" then
-			local a = ""
-			for _, m in ipairs(v) do
-				a = a .. " " .. m.description
-			end
-			v = a
-		else
-			v = tostring(v)
-		end
-		local line = string.format("%-" .. #longest_key .. "s", k) .. string.format("%-" .. #longest_value .. "s", v)
-		table.insert(arr, line)
-	end
-	on_result(nil, arr)
+  ---@type string?
+  local longest_key = nil
+  ---@type string?
+  local longest_value = nil
+  for _, k in ipairs(M.keys_to_show) do
+    local v = tostring(self[k]) or ""
+    v = tostring(v)
+    if not longest_key or #k > #longest_key then
+      longest_key = k
+    end
+    if not longest_value or #v > #longest_value then
+      longest_value = v
+    end
+  end
+  longest_key = longest_key .. "   "
+  local bottom_line = "─"
+  local arr = {
+    string.format("%-" .. #longest_key .. "s", "Name")
+      .. string.format("%-" .. #longest_value .. "s", "Value"),
+  }
+  table.insert(
+    arr,
+    string.rep(bottom_line, #longest_key)
+      .. string.rep(bottom_line, #longest_value)
+  )
+  for _, k in ipairs(M.keys_to_show) do
+    ---@type table
+    local v
+    if k == "end" then
+      v = self.end_
+    else
+      v = self[k]
+    end
+    if not v then
+      v = ""
+    elseif k == "tags" then
+      v = table.concat(v, " ")
+    elseif k == "annotations" then
+      local a = ""
+      for _, m in ipairs(v) do
+        a = a .. " " .. m.description
+      end
+      v = a
+    else
+      v = tostring(v)
+    end
+    local line = string.format("%-" .. #longest_key .. "s", k)
+      .. string.format("%-" .. #longest_value .. "s", v)
+    table.insert(arr, line)
+  end
+  on_result(nil, arr)
 end
 
 --[[
@@ -1038,34 +1092,34 @@ end
 ---@param s string
 ---@return string?, Task?
 M.task_from_json = function(s)
-	if not s or s == "" then
-		return "Unable to extract tasks from JSON: empty string.", nil
-	end
-	local json = vim.json.decode(s)
-	if json and json.error then
-		return json.error.message, nil
-	elseif json and not json.error then
-		---@param k string
-		---@param v any
-		for k, v in pairs(json) do
-			if k == "end" then
-				---@diagnostic disable-next-line: no-unknown
-				json[k] = nil
-				json.end_ = parse_date(v)
-			elseif k == "start" then
-				---@diagnostic disable-next-line: no-unknown
-				json[k] = nil
-				json.start_ = parse_date(v)
-			elseif k == "entry" then
-				json.entry = parse_date(v)
-			elseif k == "modified" then
-				json.modified = parse_date(v)
-			end
-		end
-		return nil, Task:new(json)
-	else
-		return
-	end
+  if not s or s == "" then
+    return "Unable to extract tasks from JSON: empty string.", nil
+  end
+  local json = vim.json.decode(s)
+  if json and json.error then
+    return json.error.message, nil
+  elseif json and not json.error then
+    ---@param k string
+    ---@param v any
+    for k, v in pairs(json) do
+      if k == "end" then
+        ---@diagnostic disable-next-line: no-unknown
+        json[k] = nil
+        json.end_ = parse_date(v)
+      elseif k == "start" then
+        ---@diagnostic disable-next-line: no-unknown
+        json[k] = nil
+        json.start_ = parse_date(v)
+      elseif k == "entry" then
+        json.entry = parse_date(v)
+      elseif k == "modified" then
+        json.modified = parse_date(v)
+      end
+    end
+    return nil, Task:new(json)
+  else
+    return
+  end
 end
 
 --[[
@@ -1096,54 +1150,54 @@ end)
 --]]
 ---@return string?, Task[]?
 M.get_tasks = function()
-	local r = { err = nil, result = nil }
-	Job:new({
-		command = "task",
-		args = { "export", "ready", "rc.verbose=nothing", "rc.json.array=0" },
-		---@param j Job
-		on_exit = function(j, code, _signal)
-			if code == 0 then
-				---@type Task[]
-				local tasks = {}
-				---@type string[]
-				local lines = j:result()
-				for _, line in ipairs(lines) do
-					local err, task = M.task_from_json(line)
-					if err then
-						r.err = err
-						return
-					else
-						table.insert(tasks, task)
-					end
-				end
-				r.result = tasks
-				return
-			else
-				r.err = "Unable to retrieve tasks."
-				return
-			end
-		end,
-	}):sync()
-	return r.err, r.result
+  local r = { err = nil, result = nil }
+  Job:new({
+    command = "task",
+    args = { "export", "ready", "rc.verbose=nothing", "rc.json.array=0" },
+    ---@param j Job
+    on_exit = function(j, code, _signal)
+      if code == 0 then
+        ---@type Task[]
+        local tasks = {}
+        ---@type string[]
+        local lines = j:result()
+        for _, line in ipairs(lines) do
+          local err, task = M.task_from_json(line)
+          if err then
+            r.err = err
+            return
+          else
+            table.insert(tasks, task)
+          end
+        end
+        r.result = tasks
+        return
+      else
+        r.err = "Unable to retrieve tasks."
+        return
+      end
+    end,
+  }):sync()
+  return r.err, r.result
 end
 
 -- The `create_config_file` function creates a new file if it doesn't exist.
 ---@param path string? -- File path, uses a default path if not provided.
 M.go_to_config_file = function(path, b)
-	local data = vim.json.encode(config.default_task_file)
-	if not data then
-		return
-	end
-	-- Use default file path if not provided.
-	if not path then
-		path = vim.loop.cwd() or "."
-	end
-	local file = path .. "/" .. config.task_file_name
-	local fd, _, _ = vim.loop.fs_open(file, "wx", 438)
-	if fd then
-		vim.loop.fs_write(fd, data, 0)
-	end
-	vim.cmd("e " .. file)
+  local data = vim.json.encode(config.default_task_file)
+  if not data then
+    return
+  end
+  -- Use default file path if not provided.
+  if not path then
+    path = vim.uv.cwd() or "."
+  end
+  local file = path .. "/" .. config.task_file_name
+  local fd, _, _ = vim.uv.fs_open(file, "wx", 438)
+  if fd then
+    vim.uv.fs_write(fd, data, 0)
+  end
+  vim.cmd("e " .. file)
 end
 
 return M
