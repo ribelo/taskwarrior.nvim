@@ -20,7 +20,7 @@ Install the plugin with your preferred package manager:
 
 ```lua
 use("ribelo/taskwarrior.nvim")
-require("taskwarrior.nvim").setup({
+require("taskwarrior_nvim").setup({
     -- your configuration comes here
     -- or leave it empty to use the default settings
     -- refer to the configuration section below
