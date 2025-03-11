@@ -41,8 +41,11 @@ selected_task_logger()
 local function make_action(action)
 	---@type {value: Task}
 	local entry = actions_state.get_selected_entry()
-	local task = entry.value
-	action(task)
+	if entry then
+		action(entry.value)
+	else
+		action(nil)
+	end
 end
 
 M.browser = function(args)
