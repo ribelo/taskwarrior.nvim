@@ -12,7 +12,9 @@ M.setup = function(opts)
 		taskwarrior
 			.cmd(args.fargs, {
 				on_exit = function(j, _code, _signal)
-					vim.notify(table.concat(j:result()))
+					vim.schedule(function()
+						vim.notify(table.concat(j:result()))
+					end)
 				end,
 			})
 			:start()
