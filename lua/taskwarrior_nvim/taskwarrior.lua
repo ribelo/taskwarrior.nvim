@@ -1,5 +1,6 @@
 local Job = require("plenary.job")
 local config = require("taskwarrior_nvim.config")
+local notify = require("taskwarrior_nvim.notify")
 
 local M = {}
 
@@ -153,12 +154,15 @@ j:start()
 ---@param code number
 M.notify = function(j, code, _)
   local msg = table.concat(j:result(), "")
-  if code == 1 then
-    vim.notify(msg, vim.log.levels.INFO, {})
-  else
-    vim.notify(msg, vim.log.levels.ERROR, {})
-  end
+  vim.schedule(function()
+    if code == 1 then
+      notify(msg, vim.log.levels.INFO, {})
+    else
+      notify(msg, vim.log.levels.ERROR, {})
+    end
+  end)
 end
+
 
 ---@alias on_exit fun(j: Job, code?: number, signal?: number)
 ---@alias on_stdout fun(err: string, data: string, j?: Job)

@@ -1,5 +1,6 @@
 local taskwarrior = require("taskwarrior_nvim.taskwarrior")
 local autocmd = require("taskwarrior_nvim.autocmd")
+local notify = require("taskwarrior_nvim.notify")
 
 local M = {}
 
@@ -12,7 +13,7 @@ M.setup = function(opts)
 		taskwarrior
 			.cmd(args.fargs, {
 				on_exit = function(j, _code, _signal)
-					vim.notify(table.concat(j:result()))
+					notify(table.concat(j:result()))
 				end,
 			})
 			:start()

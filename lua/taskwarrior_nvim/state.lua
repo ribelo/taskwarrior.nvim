@@ -1,5 +1,6 @@
 local Job = require("plenary.job")
 local config = require("taskwarrior_nvim.config")
+local notify = require("taskwarrior_nvim.notify")
 
 ---@class State
 ---@field private cache? {[string]: {task: Task, idle_timer: uv_timer_t, activity_watchers: table<integer, integer>, is_running: boolean}}
@@ -107,7 +108,7 @@ function State:stop_task(path)
 			self.cache[path].task
 				:stop(function(_j, _code, _signal)
 					if config.notify_stop then
-						vim.notify(
+						notify(
 							"Task '" .. self.cache[path].task.description .. "' has stopped.",
 							vim.log.levels.INFO,
 							{}
@@ -131,7 +132,7 @@ function State:start_task(path, bufnr, task)
 				vim.schedule(function()
 					task:start(function(_j, _code, _signal)
 						if config.notify_start then
-							vim.notify(
+							notify(
 								"Task '" .. self.cache[path].task.description .. "' has started.",
 								vim.log.levels.INFO,
 								{}
@@ -157,7 +158,7 @@ function State:start_task(path, bufnr, task)
 			self:stop_task(path)
 			task:start(function(_j, _code, _signal)
 				if config.notify_start then
-					vim.notify("Task '" .. task.description .. "' has started.", vim.log.levels.INFO, {})
+					notify("Task '" .. task.description .. "' has started.", vim.log.levels.INFO, {})
 				end
 				self.cache[path] = {
 					task = task,
@@ -172,7 +173,7 @@ function State:start_task(path, bufnr, task)
 	else
 		task:start(function(_j, _code, _signal)
 			if config.notify_start then
-				vim.notify("Task '" .. task.description .. "' has started.", vim.log.levels.INFO, {})
+				notify("Task '" .. task.description .. "' has started.", vim.log.levels.INFO, {})
 			end
 			self.cache[path] = {
 				task = task,

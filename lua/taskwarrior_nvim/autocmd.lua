@@ -1,14 +1,16 @@
 local config = require("taskwarrior_nvim.config")
 local State = require("taskwarrior_nvim.state")
 local taskwarrior = require("taskwarrior_nvim.taskwarrior")
+local notify = require("taskwarrior_nvim.notify")
 
 ---@type {[string]: string? }
 local cmd_cache = {}
 local M = {}
 
+
 M.run_task_watcher = function()
   vim.api.nvim_create_autocmd({ "BufEnter" }, {
-    callback = function()
+    callback = vim.schedule_wrap(function()
       local bufnr = vim.api.nvim_get_current_buf()
       local buf_filetype = vim.api.nvim_get_option_value("filetype", {})
       local buf_type = vim.api.nvim_get_option_value("buftype", {})
@@ -28,14 +30,14 @@ M.run_task_watcher = function()
             cmd_cache[cwd] = path
             local err, task = task_config:get_task()
             if err then
-              vim.notify(err, vim.log.levels.ERROR)
+              notify(err, vim.log.levels.ERROR)
             elseif not err and task then
               State:start_task(path, bufnr, task)
             end
           end
         end
       end
-    end,
+    end),
   })
   vim.api.nvim_create_autocmd({ "VimLeavePre" }, {
     callback = function()
